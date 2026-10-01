@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --color-latar: #0b0b0c;
+  --color-panel: #121214;
+  --color-kartu: #161618;
+  --color-garis: #26262a;
+  --color-garis-lembut: #1e1e21;
+  --color-teks: #f2f2f3;
+  --color-teks-redup: #8d8d94;
+  --color-teks-samar: #6a6a71;
+  --color-hijau: #a7d7a0;
+  --color-hijau-tua: #3f5c3a;
+  --color-merah: #e08c7d;
+
+  --radius-kartu: 14px;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-latar);
+  color: var(--color-teks);
+}
+
+body {
+  font-family:
+    "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Label kecil huruf besar yang dipakai di tiap kepala kartu */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-teks-samar);
+}
+
+.kartu {
+  background: var(--color-kartu);
+  border: 1px solid var(--color-garis-lembut);
+  border-radius: var(--radius-kartu);
+}
+
+/* Sembunyikan spinner input angka supaya kolom jumlah tetap rapi */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
