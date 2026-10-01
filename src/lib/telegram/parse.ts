@@ -113,6 +113,17 @@ export function hanyaGrade(penugasan: Penugasan[]): { grade: Grade; jumlah: numb
   return out;
 }
 
+/**
+ * Nomor urut di awal teks, mis. "/batal 3" -> 3. Dipakai perintah yang
+ * menunjuk baris di daftar /riwayat. Tanda "#" di depan ikut diterima.
+ */
+export function nomorDari(teks: string): number | null {
+  const m = teks.trim().match(/^#?(\d{1,3})(?:\s|$)/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n > 0 ? n : null;
+}
+
 /** Pisahkan "/perintah argumen" menjadi dua bagian. */
 export function pecahPerintah(teks: string): { perintah: string; argumen: string } {
   const bersih = teks.trim();

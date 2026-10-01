@@ -5,6 +5,7 @@ Satu sumber data, dua cara mengisi.
 
 - **Dashboard** — ringkasan, produksi harian, stok per grade, penjualan,
   pemakaian & afkir, pengeluaran, laporan periode, pengaturan kandang.
+  Tiap riwayat punya tombol **hapus** untuk membetulkan salah catat.
 - **Bot Telegram** — mencatat semuanya dari HP tanpa membuka browser.
 
 Stack: Next.js (App Router) · Supabase (PostgreSQL) · Vercel.
@@ -100,6 +101,8 @@ Perlu mengulang langkah ini kalau domain berubah atau
 | Afkir bebek | `/afkir A=1 sakit` |
 | Lihat stok | `/stok` |
 | Ringkasan usaha | `/ringkasan` |
+| Catatan terakhir | `/riwayat` |
+| Batalkan catatan | `/batal` · `/batal 3` |
 | Daftar perintah | `/bantuan` |
 
 Catatan:
@@ -111,6 +114,12 @@ Catatan:
 - **Nominal luwes**: `150000`, `150rb`, `1,5jt`, `Rp2000` semuanya terbaca.
 - Penjualan dan pemakaian **ditolak kalau melebihi stok**, jadi stok tidak
   bisa jadi minus karena salah ketik.
+- **Salah ketik bisa dibatalkan.** `/riwayat` menampilkan 10 catatan terakhir
+  bernomor, `/batal` menghapus yang paling baru, `/batal 3` menghapus nomor 3.
+  Urutannya mengikuti waktu pengetikan, jadi catatan bertanggal mundur tetap
+  berada di nomor 1 kalau baru saja diketik.
+- Klasifikasi tidak bisa dibatalkan kalau telurnya sudah terjual atau terpakai
+  — penjualan/pemakaiannya harus dibatalkan dulu, supaya stok tidak jadi minus.
 
 ---
 

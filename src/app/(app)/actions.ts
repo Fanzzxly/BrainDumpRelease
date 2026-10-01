@@ -10,6 +10,7 @@ import {
   catatPengeluaran,
   catatPenjualan,
   catatProduksi,
+  hapusEntri,
   type ItemJual,
 } from "@/lib/queries";
 import { db } from "@/lib/supabase";
@@ -172,6 +173,20 @@ export async function aksiAfkir(fd: FormData) {
     const jumlah = int(fd, "jumlah_afkir");
     await catatAfkir(tanggal, kandangId, jumlah, String(fd.get("keterangan_afkir") ?? ""));
     return `Afkir tersimpan: ${jumlah} ekor${kandangId ? ` dari Kandang ${kandangId}` : ""}.`;
+  });
+}
+
+export async function aksiHapusPemakaian(fd: FormData) {
+  return jalankan("/pemakaian", async () => {
+    const ringkas = await hapusEntri("pemakaian", int(fd, "id"));
+    return `Dihapus: ${ringkas}. Stoknya kembali.`;
+  });
+}
+
+export async function aksiHapusAfkir(fd: FormData) {
+  return jalankan("/pemakaian", async () => {
+    const ringkas = await hapusEntri("afkir", int(fd, "id"));
+    return `Dihapus: ${ringkas}. Populasinya kembali.`;
   });
 }
 

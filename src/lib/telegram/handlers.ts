@@ -6,13 +6,15 @@ import {
   catatPengeluaran,
   catatPenjualan,
   catatProduksi,
+  getEntriTerakhir,
   getKandang,
   getRingkasan,
   getStok,
+  hapusEntri,
   type ItemJual,
 } from "../queries";
-import { angka, hariIni, rupiah, tanggalPanjang } from "../format";
-import { hanyaGrade, parseAngka, pecahPerintah, urai } from "./parse";
+import { angka, hariIni, rupiah, tanggalPanjang, tanggalPendek } from "../format";
+import { hanyaGrade, nomorDari, parseAngka, pecahPerintah, urai } from "./parse";
 
 /**
  * Balasan dikirim dengan parse_mode HTML, jadi teks dari pengguna
@@ -47,6 +49,11 @@ Nama pembeli di kiri tanda <code>|</code>, rincian grade di kanan.
 <b>Lihat data</b>
 <code>/stok</code> — stok telur per grade
 <code>/ringkasan</code> — produksi, kas, populasi
+<code>/riwayat</code> — 10 catatan terakhir
+
+<b>Salah catat</b>
+<code>/batal</code> — hapus catatan terakhir
+<code>/batal 3</code> — hapus nomor 3 di <code>/riwayat</code>
 
 <b>Tanggal lain</b>
 Tambahkan <code>tgl=2026-09-16</code> di perintah mana pun.`;
@@ -212,6 +219,33 @@ export async function tanganiPerintah(teks: string): Promise<string> {
         `Pengeluaran: <b>${rupiah(r.keuangan.pengeluaran)}</b>`,
         `Laba: <b>${rupiah(r.keuangan.laba)}</b>`,
       ].join("\n");
+    }
+
+    // ------------------------------------------------------------ koreksi
+    case "riwayat": {
+      const entri = await getEntriTerakhir(10);
+      if (entri.length === 0) return "Belum ada catatan apa pun. Mulai dengan <code>/produksi</code>.";
+      const baris = entri
+        .map(
+          (e, i) =>
+            `<b>${i + 1}.</b> ${esc(e.ringkas)}\n     <i>${tanggalPendek(e.tanggal)}</i>`,
+        )
+        .join("\n");
+      return `<b>Catatan terakhir</b>\n${baris}\n\nSalah catat? <code>/batal</code> menghapus nomor 1, <code>/batal 3</code> menghapus nomor 3.`;
+    }
+
+    case "batal":
+    case "hapus": {
+      const entri = await getEntriTerakhir(10);
+      if (entri.length === 0) return "Belum ada catatan yang bisa dibatalkan.";
+
+      const nomor = nomorDari(u.teksMentah) ?? 1;
+      if (nomor > entri.length)
+        return `Nomor ${nomor} tidak ada di daftar — baru ada ${entri.length} catatan. Ketik /riwayat untuk melihatnya.`;
+
+      const target = entri[nomor - 1];
+      const ringkas = await hapusEntri(target.jenis, target.id);
+      return `🗑️ Dibatalkan: ${esc(ringkas)}\n<i>${tanggalPendek(target.tanggal)}</i>\n\nKetik /riwayat untuk melihat catatan terakhir.`;
     }
 
     default:
