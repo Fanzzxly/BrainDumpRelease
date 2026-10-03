@@ -42,7 +42,9 @@ Jadi angka stok tidak akan pernah menyimpang dari catatannya.
 2. Buka **SQL Editor**, tempel seluruh isi [`supabase/schema.sql`](supabase/schema.sql), jalankan.
 3. Catat dua nilai dari **Project Settings**:
    - *Data API* → **Project URL**
-   - *API Keys* → **service_role** (rahasia, jangan dibagikan)
+   - *API Keys* → **Secret key** (berawalan `sb_secret_`; pada project lama
+     namanya `service_role`). Bukan *Publishable key* / `anon` — key itu
+     tunduk pada RLS sehingga aplikasi akan kosong dan gagal menyimpan.
 
 Baris terakhir `schema.sql` mengisi 3 kandang dengan total 200 ekor.
 Sesuaikan angkanya, atau ubah nanti lewat halaman **Kandang**.
@@ -60,7 +62,7 @@ Import repo ini di Vercel, lalu isi **Environment Variables**:
 | Variable | Isi |
 |---|---|
 | `SUPABASE_URL` | Project URL dari langkah 1 |
-| `SUPABASE_SERVICE_ROLE_KEY` | service_role key dari langkah 1 |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret key (`sb_secret_…`) dari langkah 1 |
 | `APP_PASSWORD` | password untuk masuk ke dashboard |
 | `AUTH_SECRET` | string acak panjang (`openssl rand -hex 32`) |
 | `TELEGRAM_BOT_TOKEN` | token dari BotFather |
