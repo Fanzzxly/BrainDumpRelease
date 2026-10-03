@@ -1,5 +1,5 @@
 import { db } from "./supabase";
-import { GRADES, type Grade, hariIni } from "./format";
+import { GRADES, type Grade, angka, hariIni, rupiah } from "./format";
 
 export type StokGrade = {
   grade: Grade;
@@ -323,6 +323,148 @@ export async function catatAfkir(
     .from("afkir")
     .insert({ tanggal, kandang_id: kandangId, jumlah, keterangan: keterangan?.trim() || null });
   if (error) throw error;
+}
+
+// ---------------------------------------------------------------- koreksi
+
+export const JENIS_ENTRI = [
+  "produksi",
+  "klasifikasi",
+  "penjualan",
+  "pengeluaran",
+  "pemakaian",
+  "afkir",
+] as const;
+export type JenisEntri = (typeof JENIS_ENTRI)[number];
+
+/** Tabel yang dihapus untuk setiap jenis entri. */
+const TABEL: Record<JenisEntri, string> = {
+  produksi: "produksi",
+  klasifikasi: "klasifikasi",
+  penjualan: "penjualan",
+  pengeluaran: "pengeluaran",
+  pemakaian: "pemakaian_telur",
+  afkir: "afkir",
+};
+
+/**
+ * Tempat membaca entri. Sama dengan TABEL kecuali penjualan: notanya dibaca
+ * dari view supaya totalnya ikut terbaca, tapi penghapusan tetap ke tabelnya
+ * (itemnya hilang sendiri lewat on delete cascade).
+ */
+const SUMBER: Record<JenisEntri, string> = { ...TABEL, penjualan: "penjualan_total" };
+
+export type Entri = {
+  jenis: JenisEntri;
+  id: number;
+  tanggal: string;
+  dicatatPada: string;
+  ringkas: string;
+};
+
+/** Baris mentah dari Supabase; bentuk kolomnya beda-beda per jenis entri. */
+type BarisMentah = Record<string, unknown>;
+
+const num = (v: unknown): number => Number(v ?? 0);
+const teks = (v: unknown): string => (v == null ? "" : String(v));
+
+/** Satu baris yang bisa dibaca manusia, dipakai bot maupun dashboard. */
+function ringkasEntri(jenis: JenisEntri, r: BarisMentah): string {
+  const ket = teks(r.keterangan) ? ` · ${teks(r.keterangan)}` : "";
+  switch (jenis) {
+    case "produksi":
+      return `Produksi Kandang ${teks(r.kandang_id)} — ${angka(num(r.jumlah))} butir`;
+    case "klasifikasi": {
+      const a = num(r.grade_a);
+      const ab = num(r.grade_ab);
+      const b = num(r.grade_b);
+      const c = num(r.grade_c);
+      return `Klasifikasi A ${a} · AB ${ab} · B ${b} · C ${c} — ${angka(a + ab + b + c)} butir`;
+    }
+    case "penjualan":
+      return `Penjualan ${teks(r.pembeli) || "tanpa nama"} — ${angka(num(r.total_butir))} butir · ${rupiah(num(r.total_rp))}`;
+    case "pengeluaran":
+      return `Pengeluaran ${teks(r.keterangan)} — ${rupiah(num(r.jumlah))}`;
+    case "pemakaian":
+      return `Pemakaian grade ${teks(r.grade)} — ${angka(num(r.jumlah))} butir${ket}`;
+    case "afkir":
+      return `Afkir${teks(r.kandang_id) ? ` Kandang ${teks(r.kandang_id)}` : ""} — ${angka(num(r.jumlah))} ekor${ket}`;
+  }
+}
+
+/**
+ * Entri terakhir dari semua jenis catatan, terbaru dulu. Urutannya memakai
+ * `dicatat_pada`, bukan `tanggal`: yang mau dibatalkan adalah yang terakhir
+ * diketik, meski tanggalnya mundur.
+ */
+export async function getEntriTerakhir(batas = 10): Promise<Entri[]> {
+  const hasil = await Promise.all(
+    JENIS_ENTRI.map((jenis) =>
+      db()
+        .from(SUMBER[jenis])
+        .select("*")
+        .order("dicatat_pada", { ascending: false })
+        .limit(batas)
+        .then((r) => {
+          if (r.error) throw r.error;
+          return (r.data ?? []).map((row) => ({
+            jenis,
+            id: row.id as number,
+            tanggal: row.tanggal as string,
+            dicatatPada: row.dicatat_pada as string,
+            ringkas: ringkasEntri(jenis, row),
+          }));
+        }),
+    ),
+  );
+
+  return hasil
+    .flat()
+    .sort((a, b) => (a.dicatatPada < b.dicatatPada ? 1 : a.dicatatPada > b.dicatatPada ? -1 : 0))
+    .slice(0, batas);
+}
+
+/**
+ * Hapus satu entri dan kembalikan ringkasannya supaya pemanggil bisa
+ * memberitahu apa yang baru saja hilang.
+ */
+export async function hapusEntri(jenis: JenisEntri, id: number): Promise<string> {
+  const { data, error } = await db()
+    .from(SUMBER[jenis])
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data)
+    throw new AturanBisnisError(
+      `Catatan ${jenis} tidak ditemukan — mungkin sudah dihapus dari tempat lain.`,
+    );
+
+  // Klasifikasi adalah satu-satunya sumber "telur masuk". Menghapusnya bisa
+  // membuat stok minus kalau telurnya sudah terjual atau terpakai, jadi
+  // dicegah di sini supaya angka stok tetap masuk akal.
+  if (jenis === "klasifikasi") {
+    const stok = await getStok();
+    const dibatalkan: [Grade, number][] = [
+      ["A", num(data.grade_a)],
+      ["AB", num(data.grade_ab)],
+      ["B", num(data.grade_b)],
+      ["C", num(data.grade_c)],
+    ];
+    for (const [grade, jumlah] of dibatalkan) {
+      const sisa = stok.find((s) => s.grade === grade)?.sisa ?? 0;
+      if (jumlah > sisa)
+        throw new AturanBisnisError(
+          `Klasifikasi ini tidak bisa dibatalkan: ${jumlah} butir grade ${grade} sudah terjual ` +
+            `atau terpakai (sisa stok cuma ${sisa} butir). Batalkan penjualan atau pemakaiannya dulu.`,
+        );
+    }
+  }
+
+  const ringkas = ringkasEntri(jenis, data);
+  const { error: errHapus } = await db().from(TABEL[jenis]).delete().eq("id", id);
+  if (errHapus) throw errHapus;
+  return ringkas;
 }
 
 // ---------------------------------------------------------------- ringkasan

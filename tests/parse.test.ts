@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseAngka, pecahPerintah, urai } from "../src/lib/telegram/parse";
+import { nomorDari, parseAngka, pecahPerintah, urai } from "../src/lib/telegram/parse";
 import { hanyaGrade } from "../src/lib/telegram/parse";
 
 test("parseAngka menerima gaya penulisan Indonesia", () => {
@@ -113,4 +113,22 @@ test("bentuk longgar tetap jalan untuk grade dan kandang", () => {
     urai("AB 12").penugasan.map((p) => [p.kunci, p.jumlah]),
     [["AB", 12]],
   );
+});
+
+test("nomorDari membaca nomor baris untuk /batal", () => {
+  assert.equal(nomorDari("3"), 3);
+  assert.equal(nomorDari(" 10 "), 10);
+  assert.equal(nomorDari("#2"), 2);
+  assert.equal(nomorDari("2 salah ketik"), 2);
+  assert.equal(nomorDari(""), null);
+  assert.equal(nomorDari("0"), null);
+  assert.equal(nomorDari("terakhir"), null);
+  // Bukan nomor baris: angka yang menempel ke kata lain.
+  assert.equal(nomorDari("3x"), null);
+});
+
+test("/batal tanpa angka tidak meninggalkan sisa yang bikin salah baca", () => {
+  assert.deepEqual(pecahPerintah("/batal"), { perintah: "batal", argumen: "" });
+  assert.equal(nomorDari(urai("").teksMentah), null);
+  assert.equal(nomorDari(urai("3").teksMentah), 3);
 });

@@ -1,6 +1,11 @@
 import JudulHalaman from "@/components/JudulHalaman";
 import { Input, Kartu, KepalaKartu, Kosong, Label, Pesan, Select, Tombol } from "@/components/ui";
-import { aksiAfkir, aksiPemakaian } from "../actions";
+import {
+  aksiAfkir,
+  aksiHapusAfkir,
+  aksiHapusPemakaian,
+  aksiPemakaian,
+} from "../actions";
 import { getKandang, getStok } from "@/lib/queries";
 import { db } from "@/lib/supabase";
 import { GRADES, angka, hariIni, tanggalPendek } from "@/lib/format";
@@ -116,6 +121,15 @@ export default async function Pemakaian({
                       {r.keterangan ? ` · ${r.keterangan}` : ""}
                     </p>
                   </div>
+                  <form action={aksiHapusPemakaian}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <button
+                      type="submit"
+                      className="shrink-0 text-[12px] text-teks-samar underline underline-offset-4 hover:text-merah"
+                    >
+                      hapus
+                    </button>
+                  </form>
                 </li>
               ))}
             </ul>
@@ -142,6 +156,15 @@ export default async function Pemakaian({
                       {r.keterangan ? ` · ${r.keterangan}` : ""}
                     </p>
                   </div>
+                  <form action={aksiHapusAfkir}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <button
+                      type="submit"
+                      className="shrink-0 text-[12px] text-teks-samar underline underline-offset-4 hover:text-merah"
+                    >
+                      hapus
+                    </button>
+                  </form>
                 </li>
               ))}
             </ul>
