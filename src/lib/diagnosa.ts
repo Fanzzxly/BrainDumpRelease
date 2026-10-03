@@ -49,6 +49,23 @@ export function diagnosa(e: unknown): Diagnosa {
     };
   }
 
+  // PGRST125: path ke PostgREST rusak, hampir selalu karena SUPABASE_URL
+  // berakhir dengan garis miring sehingga jadi dobel slash.
+  if (kode === "PGRST125" || p.includes("invalid path specified")) {
+    return {
+      judul: "SUPABASE_URL salah bentuk",
+      sebab:
+        "Database terhubung, tapi alamat yang dipanggil rusak. Biasanya karena SUPABASE_URL berakhir dengan garis miring.",
+      langkah: [
+        "Buka Vercel → Settings → Environments → Environment Variables.",
+        "Hapus garis miring di akhir SUPABASE_URL, juga spasi yang tidak sengaja ikut.",
+        "Bentuk yang benar: https://xxxx.supabase.co",
+        "Redeploy setelah diperbaiki.",
+      ],
+      teknis: pesan,
+    };
+  }
+
   // 42P01 = undefined_table. Muncul kalau schema.sql belum dijalankan.
   if (kode === "42P01" || p.includes("does not exist") || p.includes("schema cache")) {
     return {
