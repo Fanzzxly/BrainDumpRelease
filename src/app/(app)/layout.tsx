@@ -1,5 +1,7 @@
 import Sidebar from "@/components/Sidebar";
-import { getKandang } from "@/lib/queries";
+import LayarDiagnosa from "@/components/LayarDiagnosa";
+import { getKandang, type KandangRow } from "@/lib/queries";
+import { diagnosa } from "@/lib/diagnosa";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +10,16 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const kandang = await getKandang();
+  // Satu query murah sekaligus jadi pemeriksaan kesehatan: kalau database
+  // belum siap, tampilkan penjelasan yang bisa ditindaklanjuti alih-alih
+  // membiarkan setiap halaman gagal dengan layar error kosong.
+  let kandang: KandangRow[];
+  try {
+    kandang = await getKandang();
+  } catch (e) {
+    return <LayarDiagnosa d={diagnosa(e)} />;
+  }
+
   const aktif = kandang.filter((k) => k.aktif);
   const populasi = aktif.reduce((s, k) => s + k.populasi, 0);
 

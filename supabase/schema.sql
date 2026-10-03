@@ -88,10 +88,15 @@ create index if not exists afkir_tanggal_idx on afkir (tanggal desc);
 
 -- =====================================================================
 -- VIEW turunan
+--
+-- security_invoker = true WAJIB di sini. Tanpa itu view dijalankan dengan
+-- hak pemiliknya (postgres), sehingga RLS tabel di bawahnya dilewati dan
+-- siapa pun yang memegang publishable key bisa membaca stok serta omzet
+-- lewat view ini. Supabase menandai view semacam itu "UNRESTRICTED".
 -- =====================================================================
 
 -- Stok telur per grade = masuk (klasifikasi) - terjual - terpakai
-create or replace view stok_telur as
+create or replace view stok_telur with (security_invoker = true) as
 with masuk as (
   select 'A'  as grade, coalesce(sum(grade_a), 0)::bigint  as jumlah from klasifikasi
   union all
@@ -120,7 +125,7 @@ left join terjual  t on t.grade = m.grade
 left join terpakai p on p.grade = m.grade;
 
 -- Populasi aktual per kandang = populasi awal - afkir
-create or replace view populasi_kandang as
+create or replace view populasi_kandang with (security_invoker = true) as
 select
   k.id,
   k.nama,
@@ -135,7 +140,7 @@ left join (
 ) a on a.kandang_id = k.id;
 
 -- Nilai total tiap nota penjualan
-create or replace view penjualan_total as
+create or replace view penjualan_total with (security_invoker = true) as
 select
   p.id,
   p.tanggal,

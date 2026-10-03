@@ -49,6 +49,11 @@ Jadi angka stok tidak akan pernah menyimpang dari catatannya.
 Baris terakhir `schema.sql` mengisi 3 kandang dengan total 200 ekor.
 Sesuaikan angkanya, atau ubah nanti lewat halaman **Kandang**.
 
+Sudah menjalankan `schema.sql` versi lama (sebelum view memakai
+`security_invoker`)? Jalankan sekali
+[`supabase/perbaikan-view-rls.sql`](supabase/perbaikan-view-rls.sql).
+Tandanya: badge **UNRESTRICTED** pada view di Table Editor.
+
 ### 2. Bot Telegram
 
 1. Chat [@BotFather](https://t.me/BotFather) → `/newbot` → simpan **token**-nya.
@@ -124,8 +129,11 @@ Catatan:
   tidak bisa mengirim data palsu ke endpoint-nya.
 - Bot hanya melayani chat ID yang terdaftar di `TELEGRAM_ALLOWED_CHAT_IDS`.
   Orang lain yang menemukan botmu tidak bisa menulis apa pun.
-- RLS menyala di semua tabel tanpa policy. Aplikasi memakai service_role key
-  dari sisi server; anon key tidak bisa membaca apa pun.
+- RLS menyala di semua tabel tanpa policy. Aplikasi memakai Secret key
+  dari sisi server; publishable key tidak bisa membaca apa pun.
+- Ketiga view dibuat dengan `security_invoker = true` supaya ikut tunduk
+  pada RLS tabel di bawahnya. Tanpa itu view berjalan dengan hak pemiliknya
+  dan membocorkan stok serta omzet ke pemegang publishable key.
 
 `SUPABASE_SERVICE_ROLE_KEY` memberi akses penuh ke database. Simpan hanya
 di environment variable Vercel, jangan pernah di-commit.
